@@ -1,7 +1,5 @@
 # Metis API Client
 
-🚀 **Modern TypeScript HTTP API client with dynamic routes, parameterized endpoints, and advanced features**
-
 [![NPM](https://nodei.co/npm/@metis-w/api-client.png)](https://npmjs.com/package/@metis-w/api-client)
 
 ## ✨ Features
