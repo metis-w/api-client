@@ -1,0 +1,29 @@
+{
+    "name": "@metis-w/api-client",
+    "version": "1.0.0",
+    "description": "Modern TypeScript HTTP API client with dynamic routes, parameterized endpoints, interceptors, and advanced features",
+    "author": "whiteakyloff",
+    "homepage": "https://github.com/metis-w/api-client",
+    "bugs": "https://github.com/metis-w/api-client/issues",
+    "repository": "github.com:metis-w/api-client",
+    "license": "MIT",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "keywords": [
+        "api",
+        "client",
+        "typescript",
+        "fetch",
+        "http",
+        "dynamic-routes",
+        "interceptors",
+        "modern",
+        "rest"
+    ],
+    "devDependencies": {
+        "typescript": "^5.8.3"
+    }
+}
