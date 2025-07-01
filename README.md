@@ -168,5 +168,3 @@ MIT © [whiteakyloff](https://github.com/whiteakyloff)
 Contributions welcome! Please read our contributing guidelines and submit pull requests.
 
 ---
-
-**Built with ❤️ and TypeScript**
