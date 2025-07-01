@@ -2,7 +2,7 @@
 
 [![NPM](https://nodei.co/npm/@metis-w/api-client.png)](https://npmjs.com/package/@metis-w/api-client)
 
-## ✨ Features
+## Features
 
 - 🎯 **Dynamic Routes** - `api.users.getProfile()`, `api.admin.users.ban()`
 - 📊 **Parameterized Endpoints** - `api.users(123).follow()`, `api.posts('slug').view()`
@@ -14,13 +14,13 @@
 - 📁 **File Upload** - Automatic FormData handling for File/Blob objects
 - 🎨 **Flexible Configuration** - Per-request and global settings
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @metis-w/api-client
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Basic Usage
 
@@ -64,7 +64,7 @@ const follow = await api.users(123).follow({ notify: true }); // POST /users/123
 const profile = await api.users(456).profile.update({ bio: 'New bio' }); // POST /users/456/profile/update
 ```
 
-## 🔧 Advanced Features
+## Advanced Features
 
 ### Interceptors
 
@@ -108,7 +108,7 @@ const response = await api.upload.avatar({
 });
 ```
 
-## 📝 API Reference
+## API Reference
 
 ### APIClient
 
@@ -149,7 +149,7 @@ interface APIResponse<T> {
 }
 ```
 
-## 🧪 Examples
+## Examples
 
 Check out the `test/` directory for comprehensive examples:
 - `test-api-client.ts` - Basic API client usage
