@@ -1,6 +1,6 @@
 {
     "name": "@metis-w/api-client",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Modern TypeScript HTTP API client with dynamic routes, parameterized endpoints, interceptors, and advanced features",
     "author": "whiteakyloff",
     "homepage": "https://github.com/metis-w/api-client",
@@ -10,7 +10,10 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage"
     },
     "publishConfig": {
         "access": "public"
@@ -27,6 +30,11 @@
         "rest"
     ],
     "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node-fetch": "^2.6.12",
+        "jest": "^30.0.3",
+        "node-fetch": "^2.6.7",
+        "ts-jest": "^29.4.0",
         "typescript": "^5.8.3"
     }
 }

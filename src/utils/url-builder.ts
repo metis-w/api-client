@@ -8,12 +8,16 @@ export class URLBuilder {
     }
 
     /**
-     * Sets the base URL for the builder.
-     * @param baseUrl - The base URL to set.
+     * Adds a path segment to the URL, automatically handling leading/trailing slashes.
+     * @param path - The path segment to add.
      */
     segment(path: string): this {
         if (path) {
-            this.segments.push(path.toString());
+            // Видаляємо ведучий слеш, якщо є
+            const cleanPath = path.replace(/^\/+/, "");
+            if (cleanPath) {
+                this.segments.push(cleanPath);
+            }
         }
         return this;
     }

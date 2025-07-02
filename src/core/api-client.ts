@@ -1,24 +1,29 @@
 import { APIConfig, RequestConfig } from "../types/config";
-import { APIResponse, ClientError } from "../types/response";
-import { URLBuilder } from "../utils/url-builder";
+import { APIResponse } from "../types/response";
 import { DataSerializer } from "../utils/data-serializer";
-import { camelToKebab, convertObjectKeys } from "../utils/case-converter";
+import { ResponseParser } from "../libs/parsers/response-parser";
+import { RetryManager } from "../libs/managers/retry-manager";
+import { InterceptorManager } from "../libs/managers/interceptor-manager";
+import { RequestBuilder } from "../libs/builders/request-builder";
 
 export class APIClient {
     private config: Required<APIConfig>;
-    private requestInterceptors: Array<
-        (config: RequestConfig) => RequestConfig | Promise<RequestConfig>
-    > = [];
-    private responseInterceptors: Array<
-        (response: APIResponse) => APIResponse | Promise<APIResponse>
-    > = [];
+    private interceptorManager = new InterceptorManager();
+
+    /**
+     * Returns the interceptor manager for adding request and response interceptors.
+     * This allows modification of requests and responses globally.
+     */
+    public get interceptors() {
+        return this.interceptorManager;
+    }
 
     constructor(config: APIConfig) {
         this.config = {
             baseUrl: config.baseUrl,
             timeout: config.timeout || 5000,
             headers: config.headers || {},
-            withCredentials: config.withCredentials ?? true,
+            withCredentials: config.withCredentials ?? false,
             retries: config.retries || 3,
             retryDelay: config.retryDelay || 1000,
             useKebabCase: config.useKebabCase || false,
@@ -63,15 +68,34 @@ export class APIClient {
         return this.request<T>({ ...config, method: "PATCH", url, data });
     }
 
+    /**
+     * Destroys the APIClient instance, clearing all interceptors and references.
+     * This is useful for cleanup when the client is no longer needed.
+     */
+    destroy(): void {
+        this.config = null as any;
+        this.interceptorManager.clearAllInterceptors();
+    }
+
+    /**
+     * Sends an HTTP request with the specified configuration.
+     * This method handles retries, interceptors, and error parsing.
+     *
+     * @param config - The request configuration object
+     * @returns A Promise that resolves to an APIResponse object
+     */
     private async request<T = any>(
         config: RequestConfig
     ): Promise<APIResponse<T>> {
-        let finalConfig = this.mergeConfig(config);
+        let finalConfig = RequestBuilder.mergeConfig(config, this.config);
 
-        for (const interceptor of this.requestInterceptors) {
-            finalConfig = this.mergeConfig(await interceptor(finalConfig));
+        for (const {
+            interceptor,
+        } of this.interceptorManager.getRequestInterceptors()) {
+            finalConfig = RequestBuilder.mergeConfig(
+                await interceptor(finalConfig), finalConfig
+            );
         }
-
         let attempt = 0;
         const maxAttempts = finalConfig.retries! + 1;
 
@@ -80,180 +104,76 @@ export class APIClient {
                 const response = await this.executeRequest<T>(finalConfig);
 
                 let finalResponse = response;
-                for (const interceptor of this.responseInterceptors) {
+
+                for (const {
+                    interceptor,
+                } of this.interceptorManager.getResponseInterceptors()) {
                     finalResponse = await interceptor(finalResponse);
                 }
                 return finalResponse;
             } catch (error) {
                 attempt++;
+                const clientError = ResponseParser.createClientError(error);
 
-                if (attempt >= maxAttempts || !this.shouldRetry(error)) {
-                    throw error;
+                if (
+                    attempt >= maxAttempts ||
+                    !RetryManager.shouldRetry(clientError)
+                ) {
+                    throw clientError;
                 }
-                await this.delay(finalConfig.retryDelay!);
+                const delay = RetryManager.calculateBackoffDelay(
+                    attempt - 1,
+                    finalConfig.retryDelay!
+                );
+                await RetryManager.delay(delay);
             }
         }
         throw new Error("Request failed after maximum retry attempts.");
     }
 
-    private mergeConfig(config: RequestConfig): Required<RequestConfig> {
-        return {
-            method: config.method || "GET",
-            url: config.url || "",
-            data: config.data || null,
-            params: config.params || {},
-            signal:
-                (config.signal as AbortSignal) || new AbortController().signal,
-            timeout: config.timeout ?? this.config.timeout,
-            headers: config.headers ?? this.config.headers,
-            withCredentials:
-                config.withCredentials ?? this.config.withCredentials,
-            retries: config.retries ?? this.config.retries,
-            retryDelay: config.retryDelay ?? this.config.retryDelay,
-            useKebabCase: config.useKebabCase ?? this.config.useKebabCase,
-        };
-    }
-
+    /**
+     * Executes the HTTP request using the Fetch API.
+     * This method handles serialization, headers, and error parsing.
+     *
+     * @param config - The request configuration object
+     * @returns A Promise that resolves to an APIResponse object
+     */
     private async executeRequest<T>(
         config: Required<RequestConfig>
     ): Promise<APIResponse<T>> {
-        const url = this.buildUrl(config.url, config.params);
+        const url = RequestBuilder.buildUrl(
+            this.config.baseUrl,
+            config.url,
+            config.params,
+            this.config.useKebabCase
+        );
         const body = config.data
             ? DataSerializer.serialize(config.data)
             : undefined;
-        const headers = this.buildHeaders(config.headers, config.data);
+        const headers = RequestBuilder.buildHeaders(
+            config.headers,
+            config.data
+        );
+        const controller = config.signal ? null : new AbortController();
+        const effectiveSignal = config.signal || controller?.signal;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), config.timeout);
-
+        const timeoutId = setTimeout(() => {
+            if (controller) controller.abort();
+        }, config.timeout);
         try {
             const response = await fetch(url, {
                 method: config.method,
                 headers,
                 body,
                 credentials: config.withCredentials ? "include" : "omit",
-                signal: config.signal || controller.signal,
+                signal: effectiveSignal,
             });
 
             clearTimeout(timeoutId);
-            return await this.parseResponse<T>(response);
+            return await ResponseParser.parseResponse<T>(response);
         } catch (error) {
             clearTimeout(timeoutId);
-            throw this.createClientError(error);
+            throw ResponseParser.createClientError(error);
         }
-    }
-
-    private buildUrl(path: string, params?: Record<string, any>): string {
-        const formattedPath = this.config.useKebabCase 
-            ? this.convertPathToKebab(path) 
-            : path;
-        const builder = new URLBuilder(this.config.baseUrl).segment(formattedPath);
-        
-        if (params && Object.keys(params).length) {
-            const formattedParams = this.config.useKebabCase 
-                ? convertObjectKeys(params, camelToKebab) 
-                : params;
-            builder.query(formattedParams);
-        }
-        return builder.build();
-    }
-
-    private convertPathToKebab(path: string): string {
-        return path
-            .split("/")
-            .map((segment) => camelToKebab(segment))
-            .join("/");
-    }
-
-    private buildHeaders(
-        configHeaders: Record<string, string>,
-        data?: any
-    ): Record<string, string> {
-        const headers = { ...configHeaders };
-        const contentType = DataSerializer.getContentType(data);
-        
-        if (contentType) {
-            headers["Content-Type"] = contentType;
-        }
-        return headers;
-    }
-
-    private async parseResponse<T>(
-        response: Response
-    ): Promise<APIResponse<T>> {
-        try {
-            const data = await response.json();
-
-            if (typeof data === "object" && "success" in data) {
-                return data as APIResponse<T>;
-            }
-            return {
-                success: response.ok,
-                data: response.ok ? data : undefined,
-                error: response.ok
-                    ? undefined
-                    : {
-                          code: response.status,
-                          message: response.statusText || "Request failed",
-                      },
-            };
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: response.status,
-                    message: "Failed to parse response",
-                },
-            };
-        }
-    }
-
-    private createClientError(error: any): ClientError {
-        if (error.name === "AbortError") {
-            return {
-                message: "Request was aborted",
-                type: "abort",
-                originalError: error,
-            };
-        }
-        if (error.name === "TypeError") {
-            return {
-                message: "Network error",
-                type: "network",
-                originalError: error,
-            };
-        }
-        return {
-            message: error.message || "Unknown error",
-            type: "network",
-            originalError: error,
-        };
-    }
-
-    private shouldRetry(error: any): boolean {
-        if (error.type === "abort") return false;
-        if (error.type === "timeout") return true;
-        if (error.type === "network") return true;
-        return false;
-    }
-
-    private delay(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    addRequestInterceptor(
-        interceptor: (
-            config: RequestConfig
-        ) => RequestConfig | Promise<RequestConfig>
-    ): void {
-        this.requestInterceptors.push(interceptor);
-    }
-
-    addResponseInterceptor(
-        interceptor: (
-            response: APIResponse
-        ) => APIResponse | Promise<APIResponse>
-    ): void {
-        this.responseInterceptors.push(interceptor);
     }
 }
