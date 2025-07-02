@@ -13,10 +13,11 @@ export class URLBuilder {
      */
     segment(path: string): this {
         if (path) {
-            // Видаляємо ведучий слеш, якщо є
-            const cleanPath = path.replace(/^\/+/, "");
+            const cleanPath = path.replace(/^\/+|\/+$/g, "");
+
             if (cleanPath) {
-                this.segments.push(cleanPath);
+                const pathSegments = cleanPath.split('/').filter(segment => segment.length > 0);
+                this.segments.push(...pathSegments);
             }
         }
         return this;
@@ -37,9 +38,13 @@ export class URLBuilder {
      * @returns The constructed URL string.
      */
     build(): string {
-        const pathSegments = this.segments.length > 0 
-            ? `/${this.segments.join('/')}`
-            : '';
+        let pathSegments = '';
+        if (this.segments.length > 0) {
+            // Check if baseUrl already ends with a slash
+            const baseEndsWithSlash = this.baseUrl.endsWith('/');
+            const separator = baseEndsWithSlash ? '' : '/';
+            pathSegments = `${separator}${this.segments.join('/')}`;
+        }
         
         const queryString = this.buildQueryString();
         const query = queryString ? `?${queryString}` : '';

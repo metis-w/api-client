@@ -37,23 +37,23 @@ const users = await api.get('/users');
 const newUser = await api.post('/users', { name: 'John', email: 'john@example.com' });
 
 // Alternative: Use convenience functions
-import { createClient, createDynamicClient } from '@metis-w/api-client';
+import { createClient, createDynamicClient, IDynamicClient } from '@metis-w/api-client';
 
 const apiClient = createClient({ baseUrl: 'https://api.example.com' });
-const dynamicApi = createDynamicClient({ baseUrl: 'https://api.example.com' });
+const dynamicApi: IDynamicClient = createDynamicClient({ baseUrl: 'https://api.example.com' });
 ```
 
 ### Dynamic Routes
 
 ```typescript
-import { DynamicClient } from '@metis-w/api-client';
+import { DynamicClient, IDynamicClient } from '@metis-w/api-client';
 
-const api = new DynamicClient({
+const api: IDynamicClient = new DynamicClient({
     baseUrl: 'https://api.example.com',
     useKebabCase: true // converts getUserInfo → get-user-info
 });
 
-// Dynamic routing magic
+// Dynamic routing magic - no 'as any' needed!
 const profile = await api.users.getProfile({ id: 123 });
 const result = await api.admin.users.ban({ userId: 456, reason: 'spam' });
 
@@ -64,7 +64,7 @@ const settings = await api.users.profile.getSettings({ theme: 'dark' });
 ### Parameterized Routes
 
 ```typescript
-// RESTful endpoints with parameters
+// RESTful endpoints with parameters - properly typed
 const user = await api.users(123).get();                    // GET /users/123
 const follow = await api.users(123).follow({ notify: true }); // POST /users/123/follow
 const profile = await api.users(456).profile.update({ bio: 'New bio' }); // POST /users/456/profile/update
@@ -195,6 +195,9 @@ const response = await api.post('/upload/gallery', {
 Full TypeScript integration with intelligent type inference:
 
 ```typescript
+// Import types for proper typing
+import { DynamicClient, IDynamicClient, APIClient } from '@metis-w/api-client';
+
 // Define your API response types
 interface User {
     id: number;
@@ -209,21 +212,25 @@ interface CreateUserRequest {
     password: string;
 }
 
-// Type-safe API calls
-const user = await api.get<User>('/users/123');
+// Type-safe API calls with APIClient
+const client = new APIClient({ baseUrl: 'https://api.example.com' });
+const user = await client.get<User>('/users/123');
 // user.data is typed as User | undefined
 
-const newUser = await api.post<User, CreateUserRequest>('/users', {
+const newUser = await client.post<User, CreateUserRequest>('/users', {
     name: 'John Doe',
     email: 'john@example.com',
     password: 'secure123'
 });
 
-// Dynamic client with typed responses
-const profile = await api.users(123).get<User>();
-const updated = await api.users(123).update<User>({ 
-    name: 'John Smith' 
+// Type-safe dynamic client - no 'as any' needed!
+const dynamicClient: IDynamicClient = new DynamicClient({ 
+    baseUrl: 'https://api.example.com' 
 });
+
+// TypeScript understands these are dynamic routes
+const profile = await dynamicClient.users(123).get();
+const updated = await dynamicClient.users(123).update({ name: 'John Smith' });
 ```
 
 ### Generic Type Support
@@ -456,9 +463,9 @@ src/
 
 ```typescript
 // lib/api.ts
-import { DynamicClient } from '@metis-w/api-client';
+import { DynamicClient, IDynamicClient } from '@metis-w/api-client';
 
-export const api = new DynamicClient({
+export const api: IDynamicClient = new DynamicClient({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
     timeout: 10000,
     headers: {

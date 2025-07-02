@@ -71,4 +71,39 @@ describe("URLBuilder test", () => {
             ).toBe("https://api.example.com/api/v1/users?sort=name&order=asc");
         });
     });
+
+    describe("Test with path containing slashes", () => {
+        test("should handle path with multiple segments correctly", () => {
+            expect(
+                builder.segment("/account/login").build()
+            ).toBe("https://api.example.com/account/login");
+        });
+
+        test("should handle path with leading and trailing slashes", () => {
+            expect(
+                builder.segment("/api/v1/users/").build()
+            ).toBe("https://api.example.com/api/v1/users");
+        });
+
+        test("should work with baseUrl that has path", () => {
+            const builderWithPath = new URLBuilder("http://localhost:8081/v0");
+            expect(
+                builderWithPath.segment("/account/login").build()
+            ).toBe("http://localhost:8081/v0/account/login");
+        });
+
+        test("should handle baseUrl with trailing slash and path with leading slash", () => {
+            const builderWithTrailingSlash = new URLBuilder("http://localhost:8081/v0/");
+            expect(
+                builderWithTrailingSlash.segment("/account/login").build()
+            ).toBe("http://localhost:8081/v0/account/login");
+        });
+
+        test("should handle multiple slashes correctly", () => {
+            const builderWithPath = new URLBuilder("http://localhost:8081/v0");
+            expect(
+                builderWithPath.segment("///account///login///").build()
+            ).toBe("http://localhost:8081/v0/account/login");
+        });
+    });
 });

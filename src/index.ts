@@ -1,5 +1,5 @@
 import { APIClient } from "./core/api-client";
-import { DynamicClient } from "./core/dynamic-client";
+import { DynamicClient, IDynamicClient } from "./core/dynamic-client";
 import { APIConfig } from "./types/config";
 
 export { APIClient } from "./core/api-client";
@@ -8,6 +8,13 @@ export { DynamicClient } from "./core/dynamic-client";
 export type { APIConfig, HTTPMethod, RequestConfig } from "./types/config";
 export type { APIResponse, ClientError, ResponseInterceptor } from "./types/response";
 export type { APIRequest, RequestInterceptor, RequestFunction } from "./types/request";
+
+// Export dynamic client types
+export type { 
+    DynamicRoute, 
+    DynamicParameterizedRoute,
+    IDynamicClient
+} from "./core/dynamic-client";
 
 export { URLBuilder } from "./utils/url-builder";
 export { DataSerializer } from "./utils/data-serializer";
@@ -27,6 +34,6 @@ export {
 } from './interceptors';
 
 export const createClient = (config: APIConfig) => new APIClient(config);
-export const createDynamicClient = (config: APIConfig) => new DynamicClient(config);
+export const createDynamicClient = (config: APIConfig): IDynamicClient => new DynamicClient(config) as IDynamicClient;
 
 export default DynamicClient;
