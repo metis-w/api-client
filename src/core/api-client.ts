@@ -18,6 +18,14 @@ export class APIClient {
         return this.interceptorManager;
     }
 
+    /**
+     * Returns the current configuration.
+     * This allows access to configuration from derived classes.
+     */
+    protected get apiConfig() {
+        return this.config;
+    }
+
     constructor(config: APIConfig) {
         this.config = {
             baseUrl: config.baseUrl,
@@ -27,6 +35,8 @@ export class APIClient {
             retries: config.retries || 3,
             retryDelay: config.retryDelay || 1000,
             useKebabCase: config.useKebabCase || false,
+            defaultMethod: config.defaultMethod || 'POST',
+            methodRules: config.methodRules || {},
         };
     }
 
@@ -84,7 +94,7 @@ export class APIClient {
      * @param config - The request configuration object
      * @returns A Promise that resolves to an APIResponse object
      */
-    private async request<T = any>(
+    protected async request<T = any>(
         config: RequestConfig
     ): Promise<APIResponse<T>> {
         let finalConfig = RequestBuilder.mergeConfig(config, this.config);

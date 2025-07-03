@@ -63,108 +63,149 @@ const settings = await api.users.profile.getSettings({ theme: 'dark' });
 
 ### Parameterized Routes
 
+Enhanced parameterized routes with direct call support:
+
 ```typescript
-// RESTful endpoints with parameters - properly typed
-const user = await api.users(123).get();                    // GET /users/123
+// Traditional parameterized routes with actions
+const user = await api.users(123).get();                    // GET /users/123/get
 const follow = await api.users(123).follow({ notify: true }); // POST /users/123/follow
-const profile = await api.users(456).profile.update({ bio: 'New bio' }); // POST /users/456/profile/update
+const profile = await api.users(456).profile.update({ bio: 'New bio' }); // PUT /users/456/profile/update
+
+// NEW: Direct parameterized route calls (RESTful)
+const user = await api.users(123)();                        // GET /users/123
+const updated = await api.users(123)({ name: "John" });     // PUT /users/123 (with payload = update)
+const deleted = await api.users(123)({ method: "DELETE" }); // DELETE /users/123 (explicit method)
+
+// With query parameters
+const user = await api.users(123)({}, { include: "profile" }); // GET /users/123?include=profile
+const updated = await api.users(123)({ name: "John" }, { format: "json" }); // PUT /users/123?format=json
 ```
 
-## Advanced Features
+#### Direct Call Logic
 
-### Interceptors
+- **No payload**: `GET /resource/id` - Retrieve the resource
+- **With payload**: `PUT /resource/id` - Update the resource (default semantic)
+- **Explicit method**: Override with `{ method: "DELETE" }` etc.
+- **Query params**: Second parameter for URL query string
 
-Built-in interceptors for common use cases:
+### HTTP Method Resolution
+
+The DynamicClient intelligently determines the appropriate HTTP method based on several factors:
+
+#### 1. Explicit Method (Highest Priority)
 
 ```typescript
-import { 
-    requestLoggingInterceptor, 
-    responseLoggingInterceptor,
-    timingInterceptor,
-    CacheInterceptor 
-} from '@metis-w/api-client';
-
-// Request/Response logging
-api.interceptors.addRequestInterceptor(requestLoggingInterceptor({ 
-    logRequests: true,
-    logLevel: 'info'
-}));
-
-api.interceptors.addResponseInterceptor(responseLoggingInterceptor({
-    logResponses: true,
-    logLevel: 'info'
-}));
-
-// Performance monitoring
-const { requestInterceptor, responseInterceptor } = timingInterceptor({
-    logTiming: true,
-    slowRequestThreshold: 1000, // Log requests slower than 1s
-    logLevel: 'info'
-});
-api.interceptors.addRequestInterceptor(requestInterceptor);
-api.interceptors.addResponseInterceptor(responseInterceptor);
-
-// Response caching
-const cache = new CacheInterceptor({ 
-    ttl: 5 * 60 * 1000, // 5 minutes
-    maxSize: 100
-});
-api.interceptors.addRequestInterceptor(cache.requestInterceptor);
-api.interceptors.addResponseInterceptor(cache.responseInterceptor);
-
-// Convenience setup functions
-import { createLoggingSetup, createPerformanceSetup } from '@metis-w/api-client';
-
-const logging = createLoggingSetup({ logLevel: 'info' });
-api.interceptors.addRequestInterceptor(logging.request);
-api.interceptors.addResponseInterceptor(logging.response);
-
-const performance = createPerformanceSetup();
-api.interceptors.addRequestInterceptor(performance.request);
-api.interceptors.addResponseInterceptor(performance.response);
+// Override any automatic method detection
+await api.users.create({ name: "John", method: "PUT" });  // Forces PUT method
+await api.users.delete({ confirm: true, method: "POST" }); // Forces POST method
 ```
 
-### Custom Interceptors
+#### 2. Direct HTTP Methods
 
 ```typescript
-// Request interceptor with auth token
-api.interceptors.addRequestInterceptor(async (config) => {
-    const token = await getAuthToken();
-    return {
-        ...config,
-        headers: {
-            ...config.headers,
-            Authorization: `Bearer ${token}`
-        }
-    };
-});
-
-// Response interceptor with error handling
-api.interceptors.addResponseInterceptor(async (response) => {
-    if (!response.success && response.error?.code === 401) {
-        await refreshToken();
-        // Note: Manual retry would need to be implemented
-    }
-    return response;
-});
+// Direct method calls
+await api.users.get();     // GET /users/get
+await api.users.post();    // POST /users/post
+await api.users.put();     // PUT /users/put
+await api.users.delete();  // DELETE /users/delete
+await api.users.patch();   // PATCH /users/patch
 ```
 
-### Error Handling and Retries
+#### 3. Semantic Analysis (Auto-detection)
+
+The library automatically detects the intent from action names:
 
 ```typescript
-const api = new APIClient({
+// GET methods (reading data)
+await api.users.fetch();           // GET
+await api.users.load();            // GET
+await api.users.find();            // GET
+await api.users.retrieve();        // GET
+await api.users.show();            // GET
+await api.users.view();            // GET
+await api.users.getProfile();      // GET (starts with 'get')
+await api.users.loadSettings();    // GET (starts with 'load')
+
+// POST methods (creating data)
+await api.users.create();          // POST
+await api.users.add();             // POST
+await api.users.save();            // POST
+await api.users.store();           // POST
+await api.users.insert();          // POST
+await api.users.register();        // POST
+await api.users.submit();          // POST
+await api.users.createUser();      // POST (starts with 'create')
+
+// PUT methods (updating/replacing data)
+await api.users.update();          // PUT
+await api.users.replace();         // PUT
+await api.users.modify();          // PUT
+await api.users.edit();            // PUT
+await api.users.change();          // PUT
+await api.users.set();             // PUT
+await api.users.updateProfile();   // PUT (starts with 'update')
+
+// DELETE methods (removing data)
+await api.users.delete();          // DELETE
+await api.users.remove();          // DELETE
+await api.users.destroy();         // DELETE
+await api.users.clear();           // DELETE
+await api.users.drop();            // DELETE
+await api.users.deleteUser();      // DELETE (starts with 'delete')
+
+// PATCH methods (partial updates)
+await api.users.patch();           // PATCH
+await api.users.partial();         // PATCH
+await api.users.toggle();          // PATCH
+await api.users.enable();          // PATCH
+await api.users.disable();         // PATCH
+await api.users.activate();        // PATCH
+await api.users.deactivate();      // PATCH
+```
+
+#### 4. Custom Method Rules
+
+Define custom patterns for your API:
+
+```typescript
+const api = new DynamicClient({
     baseUrl: 'https://api.example.com',
-    retries: 3,                    // Retry failed requests 3 times
-    retryDelay: 1000,              // Initial delay between retries (with exponential backoff)
+    methodRules: {
+        'users': 'GET',           // api.users.anything() → GET
+        'auth': 'POST',           // api.auth.anything() → POST
+        'validate*': 'POST',      // api.*.validateSomething() → POST
+        '*report': 'GET'          // api.*.generateReport() → GET
+    }
 });
 
-// Per-request retry configuration
-const data = await api.get('/users', {
-    retries: 5,
-    retryDelay: 2000,
-    timeout: 10000
-});
+await api.users.getAll();          // GET (rule override)
+await api.auth.login();            // POST (rule override)
+await api.data.validateInput();    // POST (pattern match)
+await api.sales.monthlyReport();   // GET (pattern match)
 ```
+
+#### 5. Default Method
+
+Set a fallback method for unrecognized actions:
+
+```typescript
+const api = new DynamicClient({
+    baseUrl: 'https://api.example.com',
+    defaultMethod: 'GET' // Default to GET instead of POST
+});
+
+await api.users.unknownAction();   // GET (fallback to default)
+```
+
+#### Priority Order
+
+The method resolution follows this priority:
+
+1. **Explicit method** in payload (`{ method: "DELETE" }`)
+2. **Direct HTTP method** (`get`, `post`, `put`, `delete`, `patch`)
+3. **Custom method rules** (from `methodRules` config)
+4. **Semantic analysis** (action name patterns)
+5. **Default method** (from `defaultMethod` config, defaults to `POST`)
 
 ### File Uploads
 
@@ -192,7 +233,7 @@ const response = await api.post('/upload/gallery', {
 
 ### TypeScript Support
 
-Full TypeScript integration with intelligent type inference:
+Full TypeScript integration with intelligent type inference and **zero use of `any`**:
 
 ```typescript
 // Import types for proper typing
@@ -223,12 +264,31 @@ const newUser = await client.post<User, CreateUserRequest>('/users', {
     password: 'secure123'
 });
 
-// Type-safe dynamic client - no 'as any' needed!
+// Type-safe dynamic client - no 'as any' casting needed!
 const dynamicClient: IDynamicClient = new DynamicClient({ 
-    baseUrl: 'https://api.example.com' 
+    baseUrl: 'https://api.example.com',
+    defaultMethod: 'GET',
+    methodRules: {
+        'auth*': 'POST'
+    }
 });
 
-// TypeScript understands these are dynamic routes
+// TypeScript understands these are dynamic routes with proper return types
+const userData = await dynamicClient.users.getProfile({ id: 123 });
+// userData is typed as APIResponse<unknown>
+
+// All HTTP methods work seamlessly
+await dynamicClient.users.create({ name: "John" });     // POST (semantic)
+await dynamicClient.users.update({ id: 1 });            // PUT (semantic)
+await dynamicClient.users.fetch();                      // GET (semantic)
+await dynamicClient.users.remove();                     // DELETE (semantic)
+await dynamicClient.users.patch({ status: "active" });  // PATCH (semantic)
+
+// Custom method rules
+await dynamicClient.auth.login({ email: "test@test.com" }); // POST (rule)
+
+// Explicit method override
+await dynamicClient.users.action({ data: "test", method: "DELETE" }); // DELETE (explicit)
 const profile = await dynamicClient.users(123).get();
 const updated = await dynamicClient.users(123).update({ name: 'John Smith' });
 ```

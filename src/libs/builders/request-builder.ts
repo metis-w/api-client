@@ -27,6 +27,8 @@ export class RequestBuilder {
             retries: config.retries ?? defaultConfig.retries,
             retryDelay: config.retryDelay ?? defaultConfig.retryDelay,
             useKebabCase: config.useKebabCase ?? defaultConfig.useKebabCase,
+            defaultMethod: config.defaultMethod ?? defaultConfig.defaultMethod,
+            methodRules: config.methodRules ?? defaultConfig.methodRules,
         };
     }
 

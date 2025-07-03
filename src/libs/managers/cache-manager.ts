@@ -7,7 +7,7 @@ import { DynamicClientConstants } from "../constants/dynamic-client-constants";
 export class CacheManager {
     private routeCache = new Map<string, unknown>();
     private actionCache = new Map<string, Record<string, unknown>>();
-    private parameterizedCache = new Map<string, Record<string, unknown>>();
+    private parameterizedCache = new Map<string, unknown>();
 
     /**
      * Gets a cached route by controller name
@@ -68,7 +68,7 @@ export class CacheManager {
      * @param cacheKey - The cache key to get the parameterized route for
      * @returns The cached parameterized route or undefined if not found
      */
-    getParameterizedRoute(cacheKey: string): Record<string, unknown> | undefined {
+    getParameterizedRoute(cacheKey: string): unknown | undefined {
         return this.parameterizedCache.get(cacheKey);
     }
 
@@ -77,7 +77,7 @@ export class CacheManager {
      * @param cacheKey - The cache key to set the parameterized route for
      * @param paramRoute - The parameterized route to cache
      */
-    setParameterizedRoute(cacheKey: string, paramRoute: Record<string, unknown>): void {
+    setParameterizedRoute(cacheKey: string, paramRoute: unknown): void {
         this.parameterizedCache.set(cacheKey, paramRoute);
     }
 

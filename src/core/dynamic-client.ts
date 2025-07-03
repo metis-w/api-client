@@ -3,6 +3,7 @@ import { APIConfig } from "../types/config";
 import { CacheManager } from "../libs/managers/cache-manager";
 import { RouteBuilder } from "../libs/builders/route-builder";
 import { APIResponse } from "../types/response";
+import { MethodResolverOptions } from "../utils/method-resolver";
 
 /**
  * Interface for dynamic route functions
@@ -20,10 +21,20 @@ export interface DynamicRoute {
 }
 
 /**
- * Interface for parameterized routes (e.g., api.users(123).action())
+ * Interface for parameterized routes (e.g., api.users(123).action() or api.users(123)())
  */
 export interface DynamicParameterizedRoute {
-    [action: string]: (data?: any) => Promise<APIResponse>;
+    /**
+     * Call the parameterized route directly
+     * - No payload: GET /resource/id
+     * - With payload: PUT /resource/id (default for updates)
+     */
+    (payload?: any, queryParams?: Record<string, string>): Promise<APIResponse>;
+    
+    /**
+     * Call specific actions on the parameterized route
+     */
+    [action: string]: (data?: any, queryParams?: Record<string, string>) => Promise<APIResponse>;
 }
 
 /**
@@ -49,6 +60,21 @@ export class DynamicClient extends APIClient {
     constructor(config: APIConfig) {
         super(config);
 
+        const methodOptions: MethodResolverOptions = {
+            defaultMethod: config.defaultMethod,
+            methodRules: config.methodRules
+        };
+        
+        const universalRequest = (endpoint: string, payload?: any, config?: any) => {
+            const httpMethod = config?.method || this.apiConfig.defaultMethod || 'POST';
+            return this.request({
+                url: endpoint,
+                method: httpMethod,
+                data: payload,
+                params: config?.params
+            });
+        };
+
         return new Proxy(this, {
             get(target, prop: string) {
                 if (prop in target) {
@@ -57,7 +83,8 @@ export class DynamicClient extends APIClient {
                 return RouteBuilder.createRoute(
                     prop,
                     target.cacheManager,
-                    target.post.bind(target)
+                    universalRequest,
+                    methodOptions
                 );
             },
         }) as any; // We'll use IDynamicClient interface for typing

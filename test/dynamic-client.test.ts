@@ -41,7 +41,7 @@ describe("DynamicClient", () => {
             expect(mockFetch).toHaveBeenCalledWith(
                 "https://api.example.com/users/getProfile",
                 expect.objectContaining({
-                    method: "POST",
+                    method: "GET",
                     body: JSON.stringify({ userId: 123 }),
                     headers: expect.objectContaining({
                         "Content-Type": "application/json",
@@ -153,7 +153,7 @@ describe("DynamicClient", () => {
             expect(mockFetch).toHaveBeenCalledWith(
                 "https://api.example.com/users/123/update",
                 expect.objectContaining({
-                    method: "POST",
+                    method: "PUT",
                     headers: expect.objectContaining({
                         "Content-Type": "application/json",
                     }),
@@ -211,7 +211,7 @@ describe("DynamicClient", () => {
             expect(mockFetch).toHaveBeenCalledWith(
                 "https://api.example.com/posts/my-slug/view?analytics=true&ref=x",
                 expect.objectContaining({
-                    method: "POST",
+                    method: "GET",
                     headers: expect.objectContaining({
                         "Content-Type": "application/json",
                     }),
@@ -348,6 +348,202 @@ describe("DynamicClient", () => {
                 })
             );
             expect(result.data).toHaveProperty("timestamp");
+        });
+    });
+
+    describe("HTTP Method Resolution", () => {
+        test("should use explicit method when provided", async () => {
+            await client.users.create({ name: "John", method: "DELETE" });
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                "https://api.example.com/users/create",
+                expect.objectContaining({
+                    method: "DELETE",
+                    body: JSON.stringify({ name: "John" }),
+                })
+            );
+        });
+
+        test("should use semantic analysis for different HTTP methods", async () => {
+            await client.users.fetch();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/fetch",
+                expect.objectContaining({ method: "GET" })
+            );
+
+            await client.users.create({ name: "John" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/create",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.update({ id: 1 });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/update",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            await client.users.delete();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/delete",
+                expect.objectContaining({ method: "DELETE" })
+            );
+
+            await client.users.patch({ status: "active" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/patch",
+                expect.objectContaining({ method: "PATCH" })
+            );
+        });
+
+        test("should respect custom method rules", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    "customAction": "PUT",
+                    "special*": "DELETE"
+                }
+            }) as any;
+
+            await client.users.customAction();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/customAction",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            await client.users.specialTask();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/specialTask",
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        test("should use default method for unknown actions", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                defaultMethod: "PATCH"
+            }) as any;
+
+            await client.users.unknownAction();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/unknownAction",
+                expect.objectContaining({ method: "PATCH" })
+            );
+        });
+    });
+
+    describe("Direct Parameterized Route Calls", () => {
+        test("should handle direct parameterized route call without payload (GET)", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ id: 123, name: "User 123" }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            const result = await client.users(123)();
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            expect(mockFetch).toHaveBeenCalledWith(
+                "https://api.example.com/users/123",
+                expect.objectContaining({
+                    method: "GET", // No payload = GET
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                    }),
+                    credentials: "omit",
+                    signal: expect.any(AbortSignal),
+                })
+            );
+            expect(result.success).toBe(true);
+            expect(result.data).toEqual({ id: 123, name: "User 123" });
+        });
+
+        test("should handle direct parameterized route call with payload (PUT)", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ id: 123, name: "Updated User" }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            const result = await client.users(123)({ name: "Updated User" });
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            expect(mockFetch).toHaveBeenCalledWith(
+                "https://api.example.com/users/123",
+                expect.objectContaining({
+                    method: "PUT", // With payload = PUT (update semantic)
+                    body: JSON.stringify({ name: "Updated User" }),
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                    }),
+                    credentials: "omit",
+                    signal: expect.any(AbortSignal),
+                })
+            );
+            expect(result.success).toBe(true);
+            expect(result.data).toEqual({ id: 123, name: "Updated User" });
+        });
+
+        test("should handle direct parameterized route with explicit method", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ deleted: true }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            const result = await client.users(123)({ method: "DELETE" });
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            expect(mockFetch).toHaveBeenCalledWith(
+                "https://api.example.com/users/123",
+                expect.objectContaining({
+                    method: "DELETE", // Explicit method override
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                    }),
+                    credentials: "omit",
+                    signal: expect.any(AbortSignal),
+                })
+            );
+            expect(result.success).toBe(true);
+            expect(result.data).toEqual({ deleted: true });
+        });
+
+        test("should handle direct parameterized route with query params", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ id: 123, details: "full" }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            const result = await client.users(123)({}, { include: "profile", format: "json" });
+
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            expect(mockFetch).toHaveBeenCalledWith(
+                "https://api.example.com/users/123?include=profile&format=json",
+                expect.objectContaining({
+                    method: "GET", // Empty payload = GET
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                    }),
+                    credentials: "omit",
+                    signal: expect.any(AbortSignal),
+                })
+            );
+            expect(result.success).toBe(true);
+            expect(result.data).toEqual({ id: 123, details: "full" });
         });
     });
 });
