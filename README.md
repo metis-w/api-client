@@ -66,8 +66,8 @@ const settings = await api.users.profile.getSettings({ theme: 'dark' });
 Enhanced parameterized routes with direct call support:
 
 ```typescript
-// Traditional parameterized routes with actions
-const user = await api.users(123).get();                    // GET /users/123/get
+// Traditional parameterized routes with actions (creates nested paths)
+const userProfile = await api.users(123).getProfile();      // GET /users/123/getProfile
 const follow = await api.users(123).follow({ notify: true }); // POST /users/123/follow
 const profile = await api.users(456).profile.update({ bio: 'New bio' }); // PUT /users/456/profile/update
 
@@ -289,8 +289,14 @@ await dynamicClient.auth.login({ email: "test@test.com" }); // POST (rule)
 
 // Explicit method override
 await dynamicClient.users.action({ data: "test", method: "DELETE" }); // DELETE (explicit)
-const profile = await dynamicClient.users(123).get();
-const updated = await dynamicClient.users(123).update({ name: 'John Smith' });
+
+// RESTful parameterized routes
+const user = await dynamicClient.users(123)();              // GET /users/123
+const updated = await dynamicClient.users(123)({ name: 'John Smith' }); // PUT /users/123
+
+// Traditional action-based parameterized routes  
+const profile = await dynamicClient.users(123).getProfile(); // GET /users/123/getProfile
+const follow = await dynamicClient.users(123).follow();     // POST /users/123/follow
 ```
 
 ### Generic Type Support
