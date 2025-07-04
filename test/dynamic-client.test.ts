@@ -1,11 +1,11 @@
-import { DynamicClient } from "../src/core/dynamic-client";
+import { DynamicClient, IDynamicClient } from "../src/core/dynamic-client";
 import { APIConfig, RequestConfig } from "../src/types/config";
 import { APIResponse } from "../src/types/response";
 
 global.fetch = jest.fn();
 
 describe("DynamicClient", () => {
-    let client: any;
+    let client: IDynamicClient;
     let mockFetch: jest.MockedFunction<typeof fetch>;
 
     beforeEach(() => {
@@ -14,7 +14,7 @@ describe("DynamicClient", () => {
             timeout: 5000,
             useKebabCase: false,
         };
-        client = new DynamicClient(config) as any;
+        client = new DynamicClient(config);
 
         mockFetch = fetch as jest.MockedFunction<typeof fetch>;
         mockFetch.mockClear();
@@ -400,9 +400,9 @@ describe("DynamicClient", () => {
             client = new DynamicClient({
                 baseUrl: "https://api.example.com",
                 methodRules: {
-                    "customAction": "PUT",
-                    "special*": "DELETE"
-                }
+                    customAction: "PUT",
+                    "special*": "DELETE",
+                },
             }) as any;
 
             await client.users.customAction();
@@ -421,7 +421,7 @@ describe("DynamicClient", () => {
         test("should use default method for unknown actions", async () => {
             client = new DynamicClient({
                 baseUrl: "https://api.example.com",
-                defaultMethod: "PATCH"
+                defaultMethod: "PATCH",
             }) as any;
 
             await client.users.unknownAction();
@@ -439,7 +439,9 @@ describe("DynamicClient", () => {
                 status: 200,
                 statusText: "OK",
                 headers: new Map([["content-type", "application/json"]]),
-                json: jest.fn().mockResolvedValue({ id: 123, name: "User 123" }),
+                json: jest
+                    .fn()
+                    .mockResolvedValue({ id: 123, name: "User 123" }),
             };
             mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -467,7 +469,9 @@ describe("DynamicClient", () => {
                 status: 200,
                 statusText: "OK",
                 headers: new Map([["content-type", "application/json"]]),
-                json: jest.fn().mockResolvedValue({ id: 123, name: "Updated User" }),
+                json: jest
+                    .fn()
+                    .mockResolvedValue({ id: 123, name: "Updated User" }),
             };
             mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -528,7 +532,10 @@ describe("DynamicClient", () => {
             };
             mockFetch.mockResolvedValue(mockResponse as any);
 
-            const result = await client.users(123)({}, { include: "profile", format: "json" });
+            const result = await client.users(123)(
+                {},
+                { include: "profile", format: "json" }
+            );
 
             expect(mockFetch).toHaveBeenCalledTimes(1);
             expect(mockFetch).toHaveBeenCalledWith(
@@ -544,6 +551,312 @@ describe("DynamicClient", () => {
             );
             expect(result.success).toBe(true);
             expect(result.data).toEqual({ id: 123, details: "full" });
+        });
+    });
+    describe("Method Rules Configuration", () => {
+        test("should apply simple method rules", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    authenticate: "POST",
+                    validate: "POST",
+                    approve: "PATCH",
+                },
+            }) as any;
+
+            await client.users.authenticate({ token: "abc123" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/authenticate",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.validate({ data: "test" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/validate",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.approve({ id: 123 });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/approve",
+                expect.objectContaining({ method: "PATCH" })
+            );
+        });
+
+        test("should apply wildcard method rules", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    "auth*": "POST",
+                    "admin*": "PUT",
+                    "*Report": "GET",
+                },
+            }) as any;
+
+            // Prefix wildcards
+            await client.users.authLogin({ username: "test" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/authLogin",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.authLogout();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/authLogout",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.adminPanel();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/adminPanel",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            await client.users.adminSettings();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/adminSettings",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            // Suffix wildcards
+            await client.users.salesReport();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/salesReport",
+                expect.objectContaining({ method: "GET" })
+            );
+
+            await client.users.monthlyReport();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/monthlyReport",
+                expect.objectContaining({ method: "GET" })
+            );
+        });
+
+        test("should prioritize method rules over semantic analysis", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    create: "DELETE", // Override semantic POST
+                    "get*": "POST", // Override semantic GET
+                    update: "GET", // Override semantic PUT
+                },
+            }) as any;
+
+            // Should use rule instead of semantic analysis
+            await client.users.create({ name: "John" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/create",
+                expect.objectContaining({ method: "DELETE" })
+            );
+
+            await client.users.getProfile();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/getProfile",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.update({ id: 1 });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/update",
+                expect.objectContaining({ method: "GET" })
+            );
+        });
+
+        test("should apply method rules to parameterized routes", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    activate: "PATCH",
+                    ban: "DELETE",
+                },
+            }) as any;
+
+            await client.users(123).activate();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/123/activate",
+                expect.objectContaining({ method: "PATCH" })
+            );
+
+            await client.users(456).ban({ reason: "spam" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/456/ban",
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        test("should apply method rules to multi-level routes", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    "sync*": "PUT",
+                    backup: "POST",
+                },
+            }) as any;
+
+            await client.admin.users.syncData();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/admin/users/syncData",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            await client.admin.system.backup();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/admin/system/backup",
+                expect.objectContaining({ method: "POST" })
+            );
+        });
+
+        test("should handle case-insensitive method rules", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    UPLOAD: "POST",
+                    download: "GET",
+                },
+            }) as any;
+
+            // Should match regardless of case
+            await client.files.upload({ file: "test.txt" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/files/upload",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.files.DOWNLOAD({ id: 123 });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/files/DOWNLOAD",
+                expect.objectContaining({ method: "GET" })
+            );
+        });
+
+        test("should combine method rules with default method", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                defaultMethod: "PATCH",
+                methodRules: {
+                    special: "DELETE",
+                },
+            }) as any;
+
+            // Should use rule
+            await client.users.special();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/special",
+                expect.objectContaining({ method: "DELETE" })
+            );
+
+            // Should use default method for unknown actions
+            await client.users.unknownAction();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/unknownAction",
+                expect.objectContaining({ method: "PATCH" })
+            );
+        });
+
+        test("should handle complex wildcard patterns", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    "batch*": "POST",
+                    "*Sync": "PUT",
+                    "test*": "GET",
+                },
+            }) as any;
+
+            await client.users.batchProcess();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/batchProcess",
+                expect.objectContaining({ method: "POST" })
+            );
+
+            await client.users.dataSync();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/dataSync",
+                expect.objectContaining({ method: "PUT" })
+            );
+
+            // Should match partial pattern
+            await client.users.testUserData();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/testUserData",
+                expect.objectContaining({ method: "GET" })
+            );
+        });
+
+        test("should respect explicit method over method rules", async () => {
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                methodRules: {
+                    process: "POST",
+                },
+            }) as any;
+
+            // Explicit method should override rule
+            await client.users.process({ method: "DELETE", data: "test" });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/users/process",
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        test("should handle kebab-case with method rules", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ success: true }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                useKebabCase: true,
+                methodRules: {
+                    "verify*": "GET",
+                    "verify-token": "GET", // Kebab-case версія
+                    "verifyToken": "GET"   // CamelCase версія
+                }
+            }) as any;
+
+            // Тестуємо різні варіанти
+            await client.auth.verifyToken();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/auth/verify-token", // URL у kebab-case
+                expect.objectContaining({ method: "GET" })
+            );
+
+            await client.auth.verifyEmail();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/auth/verify-email", // URL у kebab-case
+                expect.objectContaining({ method: "GET" })
+            );
+        });
+
+        test("should prioritize exact kebab-case match over patterns", async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                headers: new Map([["content-type", "application/json"]]),
+                json: jest.fn().mockResolvedValue({ success: true }),
+            };
+            mockFetch.mockResolvedValue(mockResponse as any);
+
+            client = new DynamicClient({
+                baseUrl: "https://api.example.com",
+                useKebabCase: true,
+                methodRules: {
+                    "verify*": "POST",        // Загальний паттерн
+                    "verify-token": "GET"     // Точна kebab-case назва
+                }
+            }) as any;
+
+            await client.auth.verifyToken();
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                "https://api.example.com/auth/verify-token",
+                expect.objectContaining({ method: "GET" }) // Має бути GET, не POST
+            );
         });
     });
 });

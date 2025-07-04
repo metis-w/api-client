@@ -9,7 +9,6 @@ export type { APIConfig, HTTPMethod, RequestConfig } from "./types/config";
 export type { APIResponse, ClientError, ResponseInterceptor } from "./types/response";
 export type { APIRequest, RequestInterceptor, RequestFunction } from "./types/request";
 
-// Export dynamic client types
 export type { 
     DynamicRoute, 
     DynamicParameterizedRoute,

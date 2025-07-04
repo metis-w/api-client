@@ -1,4 +1,5 @@
 import { HTTPMethod } from "../types/config";
+import { camelToKebab } from "./case-converter";
 
 export interface MethodResolverOptions {
     defaultMethod?: HTTPMethod;
@@ -97,10 +98,16 @@ export class MethodResolver {
             return actionLower.toUpperCase() as HTTPMethod;
         }
         if (options.methodRules) {
+            const actionKebab = camelToKebab(actionName).toLowerCase();
+            
             for (const [pattern, method] of Object.entries(
                 options.methodRules
             )) {
-                if (this.matchesPattern(actionLower, pattern.toLowerCase())) {
+                const patternLower = pattern.toLowerCase();
+                
+                // Перевіряємо і camelCase, і kebab-case варіанти
+                if (this.matchesPattern(actionLower, patternLower) || 
+                    this.matchesPattern(actionKebab, patternLower)) {
                     return method;
                 }
             }

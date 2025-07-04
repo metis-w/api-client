@@ -1,6 +1,6 @@
 {
     "name": "@metis-w/api-client",
-    "version": "1.2.3",
+    "version": "1.2.5",
     "description": "Modern TypeScript HTTP API client with dynamic routes, parameterized endpoints, interceptors, and advanced features",
     "author": "whiteakyloff",
     "homepage": "https://github.com/metis-w/api-client",
