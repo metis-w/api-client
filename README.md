@@ -43,7 +43,7 @@ const apiClient = createClient({ baseUrl: 'https://api.example.com' });
 const dynamicApi: IDynamicClient = createDynamicClient({ baseUrl: 'https://api.example.com' });
 ```
 
-#### Subpath imports (опційно)
+#### Subpath imports (optional)
 
 ```typescript
 import { DynamicClient } from '@metis-w/api-client/core';
