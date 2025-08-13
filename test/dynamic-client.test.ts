@@ -813,21 +813,21 @@ describe("DynamicClient", () => {
                 useKebabCase: true,
                 methodRules: {
                     "verify*": "GET",
-                    "verify-token": "GET", // Kebab-case версія
-                    verifyToken: "GET", // CamelCase версія
+                    "verify-token": "GET", // Kebab-case version
+                    verifyToken: "GET", // CamelCase version
                 },
             }) as any;
 
-            // Тестуємо різні варіанти
+            // Test different variants
             await client.auth.verifyToken();
             expect(mockFetch).toHaveBeenLastCalledWith(
-                "https://api.example.com/auth/verify-token", // URL у kebab-case
+                "https://api.example.com/auth/verify-token", // URL in kebab-case
                 expect.objectContaining({ method: "GET" })
             );
 
             await client.auth.verifyEmail();
             expect(mockFetch).toHaveBeenLastCalledWith(
-                "https://api.example.com/auth/verify-email", // URL у kebab-case
+                "https://api.example.com/auth/verify-email", // URL in kebab-case
                 expect.objectContaining({ method: "GET" })
             );
         });
@@ -846,15 +846,15 @@ describe("DynamicClient", () => {
                 baseUrl: "https://api.example.com",
                 useKebabCase: true,
                 methodRules: {
-                    "verify*": "POST", // Загальний паттерн
-                    "verify-token": "GET", // Точна kebab-case назва
+                    "verify*": "POST", // General pattern
+                    "verify-token": "GET", // Exact kebab-case name
                 },
             }) as any;
 
             await client.auth.verifyToken();
             expect(mockFetch).toHaveBeenLastCalledWith(
                 "https://api.example.com/auth/verify-token",
-                expect.objectContaining({ method: "GET" }) // Має бути GET, не POST
+                expect.objectContaining({ method: "GET" }) // Should be GET, not POST
             );
         });
     });

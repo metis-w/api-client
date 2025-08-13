@@ -89,6 +89,7 @@ export class MethodResolver {
             return explicitMethod;
         }
         const actionLower = actionName.toLowerCase();
+        const actionKebab = camelToKebab(actionName).toLowerCase();
 
         if (
             this.DIRECT_METHODS.some(
@@ -98,15 +99,27 @@ export class MethodResolver {
             return actionLower.toUpperCase() as HTTPMethod;
         }
         if (options.methodRules) {
-            const actionKebab = camelToKebab(actionName).toLowerCase();
-            
+            // 1) Prefer exact matches (kebab or camel case) regardless of insertion order
             for (const [pattern, method] of Object.entries(
                 options.methodRules
             )) {
                 const patternLower = pattern.toLowerCase();
-                
-                if (this.matchesPattern(actionLower, patternLower) || 
-                    this.matchesPattern(actionKebab, patternLower)) {
+                if (
+                    patternLower === actionLower ||
+                    patternLower === actionKebab
+                ) {
+                    return method;
+                }
+            }
+            // 2) Then check wildcard matches (prefix/suffix)
+            for (const [pattern, method] of Object.entries(
+                options.methodRules
+            )) {
+                const patternLower = pattern.toLowerCase();
+                if (
+                    this.matchesPattern(actionLower, patternLower) ||
+                    this.matchesPattern(actionKebab, patternLower)
+                ) {
                     return method;
                 }
             }

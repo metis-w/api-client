@@ -53,7 +53,6 @@ export class RouteBuilder {
                       methodOptions
                   );
         };
-
         const cachedProxy = new Proxy(routeFunction, {
             get: (_, action: string) =>
                 RouteValidator.isValidAction(action)
@@ -96,7 +95,6 @@ export class RouteBuilder {
         if (cacheManager.hasActionRoute(cacheKey)) {
             return cacheManager.getActionRoute(cacheKey)!;
         }
-
         const actionRoute = new Proxy(
             {},
             {
@@ -207,12 +205,11 @@ export class RouteBuilder {
             controller,
             id
         );
-
         if (cacheManager.hasParameterizedRoute(cacheKey)) {
             return cacheManager.getParameterizedRoute(cacheKey)!;
         }
 
-        // Створюємо функцію, яка може бути викликана безпосередньо
+        // Create a function that can be called directly (parameterized route callable)
         const baseEndpoint = `/${controller}/${id}`;
         const paramFunction = (
             payload?: Record<string, unknown>,
@@ -223,7 +220,7 @@ export class RouteBuilder {
                     ? (payload.method as HTTPMethod)
                     : undefined;
 
-            // Для прямого виклику використовуємо GET якщо немає payload, інакше PUT для оновлення
+            // For direct calls: use GET when there's no payload, otherwise PUT (update semantics)
             const defaultAction =
                 payload && Object.keys(payload).length > 0 ? "update" : "get";
             const httpMethod = MethodResolver.determineMethod(
@@ -231,7 +228,6 @@ export class RouteBuilder {
                 methodOptions,
                 explicitMethod
             );
-
             const cleanPayload =
                 payload && typeof payload === "object" && "method" in payload
                     ? Object.fromEntries(
@@ -249,14 +245,12 @@ export class RouteBuilder {
 
         const paramRoute = new Proxy(paramFunction, {
             get: (_, action: string) => {
-                if (!RouteValidator.isValidAction(action)) return undefined;
-
+                if (!RouteValidator.isValidAction(action)) {
+                    return undefined;
+                }
                 const endpoint = `/${controller}/${id}/${action}`;
                 const paramHandler = this.createEndpointHandler(
-                    endpoint,
-                    requestMethod,
-                    methodOptions,
-                    action
+                    endpoint, requestMethod, methodOptions, action
                 );
 
                 return new Proxy(paramHandler, {
@@ -351,19 +345,16 @@ export class RouteBuilder {
             payload?: Record<string, unknown>,
             queryParams?: Record<string, string>
         ): Promise<APIResponse<unknown>> => {
-            // Визначаємо HTTP метод для sub-action
+            // Determine HTTP method for the sub-action
             const explicitMethod =
                 payload && typeof payload === "object" && "method" in payload
                     ? (payload.method as HTTPMethod)
                     : undefined;
-
             const httpMethod = MethodResolver.determineMethod(
-                subAction,
-                methodOptions,
-                explicitMethod
+                subAction, methodOptions, explicitMethod
             );
 
-            // Видаляємо method з payload, якщо він там є
+            // Remove method from payload if present
             const cleanPayload =
                 payload && typeof payload === "object" && "method" in payload
                     ? Object.fromEntries(

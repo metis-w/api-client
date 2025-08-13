@@ -23,20 +23,19 @@ export const timingInterceptor = (options: TimingOptions = {}) => {
         const requestId = `${config.method}_${config.url}_${Date.now()}`;
         timings.set(requestId, performance.now());
 
-        // Додаємо ID до config для відстеження
+        // Add request ID to config for tracking
         config.headers = {
             ...config.headers,
             "X-Request-ID": requestId,
         };
-
         return config;
     };
 
     const responseInterceptor = (response: APIResponse): APIResponse => {
-        // Тут ми б отримували Request-ID з response headers, але для простоти
-        // будемо логувати всі завершені запити
+        // Normally we would pull the Request-ID from response headers; for simplicity
+        // we just log all completed requests
         if (logTiming) {
-            // В реальному додатку тут буде логіка отримання timing
+            // In a real app, timings would be correlated via IDs
             console[logLevel]("⏱️ Request completed");
         }
         return response;
