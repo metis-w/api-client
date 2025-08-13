@@ -105,7 +105,6 @@ export class MethodResolver {
             )) {
                 const patternLower = pattern.toLowerCase();
                 
-                // Перевіряємо і camelCase, і kebab-case варіанти
                 if (this.matchesPattern(actionLower, patternLower) || 
                     this.matchesPattern(actionKebab, patternLower)) {
                     return method;
