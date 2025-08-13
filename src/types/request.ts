@@ -1,4 +1,4 @@
-import { HTTPMethod, RequestConfig } from "./config";
+import { HTTPMethod, RequestConfig } from ".";
 
 export interface APIRequest {
     url: string;

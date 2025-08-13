@@ -1,4 +1,4 @@
-import { URLBuilder } from "../src/utils/url-builder";
+import { URLBuilder } from "../src";
 
 describe("URLBuilder test", () => {
     let builder: URLBuilder;

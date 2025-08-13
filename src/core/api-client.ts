@@ -1,10 +1,10 @@
-import { APIConfig, RequestConfig } from "../types/config";
-import { APIResponse } from "../types/response";
-import { DataSerializer } from "../utils/data-serializer";
-import { ResponseParser } from "../libs/parsers/response-parser";
-import { RetryManager } from "../libs/managers/retry-manager";
-import { InterceptorManager } from "../libs/managers/interceptor-manager";
-import { RequestBuilder } from "../libs/builders/request-builder";
+import { APIConfig, APIResponse, RequestConfig } from "../types";
+
+import { DataSerializer } from "../utils";
+import { ResponseParser } from "../libs/parsers";
+import { RequestBuilder } from "../libs/builders";
+
+import { RetryManager, InterceptorManager } from "../libs/managers";
 
 export class APIClient {
     private config: Required<APIConfig>;
@@ -35,7 +35,7 @@ export class APIClient {
             retries: config.retries || 3,
             retryDelay: config.retryDelay || 1000,
             useKebabCase: config.useKebabCase || false,
-            defaultMethod: config.defaultMethod || 'POST',
+            defaultMethod: config.defaultMethod || "POST",
             methodRules: config.methodRules || {},
         };
     }
@@ -103,7 +103,8 @@ export class APIClient {
             interceptor,
         } of this.interceptorManager.getRequestInterceptors()) {
             finalConfig = RequestBuilder.mergeConfig(
-                await interceptor(finalConfig), finalConfig
+                await interceptor(finalConfig),
+                finalConfig
             );
         }
         let attempt = 0;

@@ -1,4 +1,4 @@
-import { DynamicClientConstants } from "../constants/dynamic-client-constants";
+import { DynamicClientConstants } from "../constants";
 
 /**
  * Manages caching for dynamic routes, actions, and parameterized routes

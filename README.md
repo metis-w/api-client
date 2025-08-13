@@ -43,6 +43,13 @@ const apiClient = createClient({ baseUrl: 'https://api.example.com' });
 const dynamicApi: IDynamicClient = createDynamicClient({ baseUrl: 'https://api.example.com' });
 ```
 
+#### Subpath imports (опційно)
+
+```typescript
+import { DynamicClient } from '@metis-w/api-client/core';
+import { CacheInterceptor } from '@metis-w/api-client/interceptors';
+```
+
 ### Dynamic Routes
 
 ```typescript
@@ -71,7 +78,7 @@ const userProfile = await api.users(123).getProfile();      // GET /users/123/ge
 const follow = await api.users(123).follow({ notify: true }); // POST /users/123/follow
 const profile = await api.users(456).profile.update({ bio: 'New bio' }); // PUT /users/456/profile/update
 
-// NEW: Direct parameterized route calls (RESTful)
+// NEW: Direct parameterized route calls (RESTful) - URL will reflect useKebabCase if enabled (e.g. getProfile → get-profile)
 const user = await api.users(123)();                        // GET /users/123
 const updated = await api.users(123)({ name: "John" });     // PUT /users/123 (with payload = update)
 const deleted = await api.users(123)({ method: "DELETE" }); // DELETE /users/123 (explicit method)
@@ -165,23 +172,22 @@ await api.users.deactivate();      // PATCH
 
 #### 4. Custom Method Rules
 
-Define custom patterns for your API:
+Define custom patterns for your API. Patterns are matched against action names (not controller names), case-insensitively. Matching supports prefix/suffix wildcards and kebab-case or camelCase action names:
 
 ```typescript
 const api = new DynamicClient({
     baseUrl: 'https://api.example.com',
     methodRules: {
-        'users': 'GET',           // api.users.anything() → GET
-        'auth': 'POST',           // api.auth.anything() → POST
-        'validate*': 'POST',      // api.*.validateSomething() → POST
-        '*report': 'GET'          // api.*.generateReport() → GET
+        'validate*': 'POST',   // e.g., validateInput → POST
+        '*report': 'GET',      // e.g., monthlyReport → GET
+        'verify*': 'GET',      // e.g., verifyToken → GET
+        'delete*': 'DELETE'    // e.g., deleteUser → DELETE
     }
 });
 
-await api.users.getAll();          // GET (rule override)
-await api.auth.login();            // POST (rule override)
 await api.data.validateInput();    // POST (pattern match)
 await api.sales.monthlyReport();   // GET (pattern match)
+await api.auth.verifyToken();      // GET (pattern match)
 ```
 
 #### 5. Default Method
@@ -233,7 +239,7 @@ const response = await api.post('/upload/gallery', {
 
 ### TypeScript Support
 
-Full TypeScript integration with intelligent type inference and **zero use of `any`**:
+Full TypeScript integration with intelligent type inference and strict settings. Public APIs are generic-first; a few internal defaults use `any` for flexibility.
 
 ```typescript
 // Import types for proper typing
@@ -352,6 +358,8 @@ All APIClient methods plus:
 ### Configuration
 
 ```typescript
+type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
 interface APIConfig {
     baseUrl: string;
     timeout?: number;
@@ -360,6 +368,9 @@ interface APIConfig {
     retries?: number;
     retryDelay?: number;
     useKebabCase?: boolean;
+    // Method resolution options
+    defaultMethod?: HTTPMethod;                 // Fallback method, default: 'POST'
+    methodRules?: Record<string, HTTPMethod>;   // Action-based wildcard rules
 }
 ```
 

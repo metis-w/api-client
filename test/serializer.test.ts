@@ -1,4 +1,4 @@
-import { DataSerializer } from "../src/utils/data-serializer";
+import { DataSerializer } from "../src";
 
 describe("DataSerializer Test", () => {
     const mockFile = new File(["test content"], "test.txt", {

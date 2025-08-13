@@ -1,4 +1,4 @@
-import { ClientError } from "../../types/response";
+import { ClientError } from "../../types";
 
 /**
  * Manages retry logic for failed requests

@@ -1,9 +1,10 @@
-import { APIClient } from "./api-client";
-import { APIConfig } from "../types/config";
-import { CacheManager } from "../libs/managers/cache-manager";
-import { RouteBuilder } from "../libs/builders/route-builder";
-import { APIResponse } from "../types/response";
-import { MethodResolverOptions } from "../utils/method-resolver";
+import { APIClient } from ".";
+import { APIConfig, APIResponse } from "../types";
+
+import { MethodResolverOptions } from "../utils";
+import { RouteBuilder } from "../libs/builders";
+
+import { CacheManager } from "../libs/managers";
 
 /**
  * Interface for dynamic route functions
@@ -13,7 +14,7 @@ export interface DynamicRoute {
      * Call the route as an action with data
      */
     (data?: any): Promise<APIResponse>;
-    
+
     /**
      * Create a parameterized route with an ID
      */
@@ -30,11 +31,14 @@ export interface DynamicParameterizedRoute {
      * - With payload: PUT /resource/id (default for updates)
      */
     (payload?: any, queryParams?: Record<string, string>): Promise<APIResponse>;
-    
+
     /**
      * Call specific actions on the parameterized route
      */
-    [action: string]: (data?: any, queryParams?: Record<string, string>) => Promise<APIResponse>;
+    [action: string]: (
+        data?: any,
+        queryParams?: Record<string, string>
+    ) => Promise<APIResponse>;
 }
 
 /**
@@ -62,16 +66,21 @@ export class DynamicClient extends APIClient {
 
         const methodOptions: MethodResolverOptions = {
             defaultMethod: config.defaultMethod,
-            methodRules: config.methodRules
+            methodRules: config.methodRules,
         };
-        
-        const universalRequest = (endpoint: string, payload?: any, config?: any) => {
-            const httpMethod = config?.method || this.apiConfig.defaultMethod || 'POST';
+
+        const universalRequest = (
+            endpoint: string,
+            payload?: any,
+            config?: any
+        ) => {
+            const httpMethod =
+                config?.method || this.apiConfig.defaultMethod || "POST";
             return this.request({
                 url: endpoint,
                 method: httpMethod,
                 data: payload,
-                params: config?.params
+                params: config?.params,
             });
         };
 

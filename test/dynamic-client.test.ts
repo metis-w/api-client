@@ -1,6 +1,5 @@
-import { DynamicClient, IDynamicClient } from "../src/core/dynamic-client";
-import { APIConfig, RequestConfig } from "../src/types/config";
-import { APIResponse } from "../src/types/response";
+import { DynamicClient, IDynamicClient } from "../src";
+import { APIConfig, APIResponse, RequestConfig } from "../src";
 
 global.fetch = jest.fn();
 
@@ -815,8 +814,8 @@ describe("DynamicClient", () => {
                 methodRules: {
                     "verify*": "GET",
                     "verify-token": "GET", // Kebab-case версія
-                    "verifyToken": "GET"   // CamelCase версія
-                }
+                    verifyToken: "GET", // CamelCase версія
+                },
             }) as any;
 
             // Тестуємо різні варіанти
@@ -847,9 +846,9 @@ describe("DynamicClient", () => {
                 baseUrl: "https://api.example.com",
                 useKebabCase: true,
                 methodRules: {
-                    "verify*": "POST",        // Загальний паттерн
-                    "verify-token": "GET"     // Точна kebab-case назва
-                }
+                    "verify*": "POST", // Загальний паттерн
+                    "verify-token": "GET", // Точна kebab-case назва
+                },
             }) as any;
 
             await client.auth.verifyToken();

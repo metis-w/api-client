@@ -1,11 +1,11 @@
+import { CacheManager } from "../managers";
+
 import {
     MethodResolver,
     MethodResolverOptions,
-} from "../../utils/method-resolver";
-import { HTTPMethod } from "../../types/config";
-import { APIResponse } from "../../types/response";
-import { CacheManager } from "../managers/cache-manager";
-import { RouteValidator } from "../../utils/route-validator";
+    RouteValidator,
+} from "../../utils";
+import { APIResponse, HTTPMethod } from "../../types";
 
 /**
  * Manages the creation and building of dynamic routes for the DynamicClient.
@@ -46,7 +46,12 @@ export class RouteBuilder {
                       requestMethod,
                       methodOptions
                   )
-                : this.createActionRoute(controller, cacheManager, requestMethod, methodOptions);
+                : this.createActionRoute(
+                      controller,
+                      cacheManager,
+                      requestMethod,
+                      methodOptions
+                  );
         };
 
         const cachedProxy = new Proxy(routeFunction, {
@@ -217,9 +222,10 @@ export class RouteBuilder {
                 payload && typeof payload === "object" && "method" in payload
                     ? (payload.method as HTTPMethod)
                     : undefined;
-            
+
             // Для прямого виклику використовуємо GET якщо немає payload, інакше PUT для оновлення
-            const defaultAction = payload && Object.keys(payload).length > 0 ? "update" : "get";
+            const defaultAction =
+                payload && Object.keys(payload).length > 0 ? "update" : "get";
             const httpMethod = MethodResolver.determineMethod(
                 defaultAction,
                 methodOptions,

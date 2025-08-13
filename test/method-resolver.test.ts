@@ -1,4 +1,4 @@
-import { MethodResolver, MethodResolverOptions } from '../src/utils/method-resolver';
+import { MethodResolver, MethodResolverOptions } from '../src';
 
 describe('MethodResolver', () => {
     describe('determineMethod', () => {

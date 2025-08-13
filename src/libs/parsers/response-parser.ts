@@ -1,4 +1,4 @@
-import { APIResponse, ClientError } from "../../types/response";
+import { APIResponse, ClientError } from "../../types";
 
 /**
  * Utilities for parsing HTTP responses and creating standardized error objects

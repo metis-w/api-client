@@ -1,5 +1,4 @@
-import { APIClient } from "../src/core/api-client";
-import { APIConfig } from "../src/types/config";
+import { APIClient, APIConfig } from "../src";
 
 global.fetch = jest.fn();
 
@@ -59,7 +58,7 @@ describe("APIClient", () => {
 
             await expect(client.get("/users/1")).rejects.toMatchObject({
                 message: expect.stringContaining("Network error"),
-                type: "network"
+                type: "network",
             });
         });
     });

@@ -1,5 +1,4 @@
-import { RequestConfig } from "../types/config";
-import { APIResponse } from "../types/response";
+import { APIResponse, RequestConfig } from "../types";
 
 export interface CacheOptions {
     ttl?: number; // Time to live in milliseconds

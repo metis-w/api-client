@@ -1,5 +1,4 @@
-import { RequestConfig } from "../types/config";
-import { APIResponse } from "../types/response";
+import { APIResponse, RequestConfig } from "../types";
 
 export interface TimingOptions {
     logTiming?: boolean;

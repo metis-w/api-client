@@ -1,5 +1,4 @@
-import { RequestConfig } from "../types/config";
-import { APIResponse, ClientError } from "../types/response";
+import { APIResponse, RequestConfig, ClientError } from "../types";
 
 export interface LoggingOptions {
     logRequests?: boolean;

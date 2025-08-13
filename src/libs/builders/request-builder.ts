@@ -1,8 +1,12 @@
+import { Sanitizer } from "../security";
+
+import {
+    URLBuilder,
+    DataSerializer,
+    camelToKebab,
+    convertObjectKeys,
+} from "../../utils";
 import { APIConfig, RequestConfig } from "../../types/config";
-import { URLBuilder } from "../../utils/url-builder";
-import { DataSerializer } from "../../utils/data-serializer";
-import { camelToKebab, convertObjectKeys } from "../../utils/case-converter";
-import { Sanitizer } from "../security/sanitizer";
 
 export class RequestBuilder {
     /**

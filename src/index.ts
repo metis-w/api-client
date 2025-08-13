@@ -1,38 +1,15 @@
-import { APIClient } from "./core/api-client";
-import { DynamicClient, IDynamicClient } from "./core/dynamic-client";
-import { APIConfig } from "./types/config";
+export * from "./core";
+export * from "./types";
+export * from "./utils";
+export * from "./interceptors";
+export * from "./libs";
 
-export { APIClient } from "./core/api-client";
-export { DynamicClient } from "./core/dynamic-client";
-
-export type { APIConfig, HTTPMethod, RequestConfig } from "./types/config";
-export type { APIResponse, ClientError, ResponseInterceptor } from "./types/response";
-export type { APIRequest, RequestInterceptor, RequestFunction } from "./types/request";
-
-export type { 
-    DynamicRoute, 
-    DynamicParameterizedRoute,
-    IDynamicClient
-} from "./core/dynamic-client";
-
-export { URLBuilder } from "./utils/url-builder";
-export { DataSerializer } from "./utils/data-serializer";
-export { camelToKebab, kebabToCamel, convertObjectKeys } from "./utils/case-converter";
-
-export {
-    requestLoggingInterceptor,
-    responseLoggingInterceptor,
-    errorLoggingInterceptor,
-    performanceInterceptor,
-    CacheInterceptor,
-    createLoggingSetup,
-    createPerformanceSetup,
-    type LoggingOptions,
-    type TimingOptions,
-    type CacheOptions
-} from './interceptors';
+// Factory helpers
+import { APIClient, DynamicClient } from "./core";
+import type { APIConfig } from "./types";
+import type { IDynamicClient } from "./core";
 
 export const createClient = (config: APIConfig) => new APIClient(config);
-export const createDynamicClient = (config: APIConfig): IDynamicClient => new DynamicClient(config) as IDynamicClient;
-
-export default DynamicClient;
+export const createDynamicClient = (
+    config: APIConfig
+): IDynamicClient => new DynamicClient(config) as IDynamicClient;

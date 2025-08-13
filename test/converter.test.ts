@@ -2,7 +2,7 @@ import {
     camelToKebab,
     kebabToCamel,
     convertObjectKeys,
-} from "../src/utils/case-converter";
+} from "../src";
 
 describe("Converter Test", () => {
     describe("camelToKebab", () => {

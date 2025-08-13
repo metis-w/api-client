@@ -9,6 +9,15 @@
     "license": "MIT",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+        "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
+        "./interceptors": { "types": "./dist/interceptors/index.d.ts", "import": "./dist/interceptors/index.js" },
+        "./utils": { "types": "./dist/utils/index.d.ts", "import": "./dist/utils/index.js" },
+        "./libs": { "types": "./dist/libs/index.d.ts", "import": "./dist/libs/index.js" },
+        "./types": { "types": "./dist/types/index.d.ts", "import": "./dist/types/index.js" }
+    },
+    "sideEffects": false,
     "scripts": {
         "build": "tsc",
         "test": "jest",
